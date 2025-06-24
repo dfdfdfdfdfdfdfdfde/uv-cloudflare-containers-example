@@ -1,0 +1,20 @@
+{
+  "name": "containers",
+  "description": "Build a Container-enabled Worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "typescript": "^5.5.2",
+    "wrangler": "^4.21.2"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.13"
+  }
+}
