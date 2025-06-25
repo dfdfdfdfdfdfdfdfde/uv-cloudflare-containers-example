@@ -1,23 +1,36 @@
-# syntax=docker/dockerfile:1
+# Use a Python image with uv pre-installed.
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-FROM golang:1.24-alpine AS build
-
-# Set destination for COPY
+# Install the project into `/app`.
 WORKDIR /app
 
-# Download any Go modules
-COPY container_src/go.mod ./
-RUN go mod download
+# Enable bytecode compilation.
+ENV UV_COMPILE_BYTECODE=1
 
-# Copy container source code
-COPY container_src/*.go ./
+# Copy from the cache instead of linking since it's a mounted volume.
+ENV UV_LINK_MODE=copy
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /server
+# Copy the project's configuration files.
+ADD ./app/pyproject.toml /app
+ADD ./app/uv.lock /app
 
-FROM scratch
-COPY --from=build /server /server
+# Install the project's dependencies.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --no-dev
+
+# Copy the project into the image.
+ADD ./app /app
+
+# Sync the project.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+# Place executables in the environment at the front of the path.
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Reset the entrypoint, don't invoke `uv`.
+ENTRYPOINT []
+
+# Run the FastAPI server.
 EXPOSE 8080
-
-# Run
-CMD ["/server"]
+CMD ["uvicorn", "main:app", "--host", "10.0.0.1", "--port", "8080"]
